@@ -1,53 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Customers</title>
-  <style>
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid black; padding: 8px; text-align: left; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Customers</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        nav {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
 </head>
 <body>
-  <h1>Customers</h1>
+    <h1>Customers</h1>
 
+    <!-- Navigation Bar -->
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="customers.html">View Customers</a></li>
+            <li><a href="products.html">View Products</a></li>
+            <li><a href="orders.html">View Orders</a></li>
+            <li><a href="order_details.html">View Order Details</a></li>
+        </ul>
+    </nav>
 
-  <nav style="background-color: #333; padding: 10px; margin-bottom: 20px;">
-    <ul style="list-style: none; margin: 0; padding: 0; display: flex; gap: 15px;">
-      <li><a href="index.html" style="color: white; text-decoration: none;">Home</a></li>
-      <li><a href="customers.html" style="color: white; text-decoration: none;">View Customers</a></li>
-      <li><a href="products.html" style="color: white; text-decoration: none;">View Products</a></li>
-      <li><a href="orders.html" style="color: white; text-decoration: none;">View Orders</a></li>
-      <li><a href="order_details.html" style="color: white; text-decoration: none;">View Order Details</a></li>
-    </ul>
-  </nav>
+    <!-- Customer Table -->
+    <div id="customerTable">
+        <table>
+            <tr>
+                <th>Customer Name</th>
+                <th>Email</th>
+                <th>Phone Number</th>
+                <th>Actions</th>
+            </tr>
+        </table>
+    </div>
 
+    <!-- Add Customer Form -->
+    <h2>Add New Customer</h2>
+    <form id="addCustomerForm">
+        <label for="firstName">Name:</label>
+        <input type="text" id="firstName" name="firstName" required>
+        <label for="emailAddress">Email:</label>
+        <input type="email" id="emailAddress" name="emailAddress" required>
+        <label for="phoneNumber">Phone Number:</label>
+        <input type="tel" id="phoneNumber" name="phoneNumber" required>
+        <button type="submit">Add Customer</button>
+    </form>
 
-  <form id="searchCustomerForm">
-    <label for="search">Search by Name or Email:</label>
-    <input type="text" id="search" name="search">
-    <button type="submit">Search</button>
-  </form>
+    <script>
+        // Fetch customers and populate the table
+        fetch('/api/customers')
+            .then(response => response.json())
+            .then(customers => {
+                const customerTable = document.querySelector('#customerTable table');
+                customers.forEach(customer => {
+                    customerTable.innerHTML += `
+                        <tr id="customer-${customer.customerID}">
+                            <td>${customer.firstName}</td>
+                            <td>${customer.emailAddress}</td>
+                            <td>${customer.phoneNumber}</td>
+                            <td>
+                                <button onclick="editCustomer(${customer.customerID})">Update</button>
+                                <button onclick="deleteCustomer(${customer.customerID})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
 
+        // Add a new customer
+        document.querySelector('#addCustomerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            fetch('/api/customers', {
+                method: 'POST',
+                body: JSON.stringify(Object.fromEntries(data)),
+                headers: { 'Content-Type': 'application/json' },
+            }).then(() => location.reload());
+        });
 
-  <div id="customerTable">
-    <table>
-      <tr><th>Name</th><th>Email</th><th>Phone</th><th>Actions</th></tr>
-      <tr><td>John Doe</td><td>johndoe@example.com</td><td>123-456-7890</td><td><button>Update</button><button>Delete</button></td></tr>
-      <tr><td>Jane Smith</td><td>janesmith@example.com</td><td>987-654-3210</td><td><button>Update</button><button>Delete</button></td></tr>
-    </table>
-  </div>
+        // Delete a customer
+        function deleteCustomer(customerID) {
+            fetch(`/api/customers/${customerID}`, { method: 'DELETE' })
+                .then(() => document.querySelector(`#customer-${customerID}`).remove());
+        }
 
+        // Update a customer (inline editing)
+        function editCustomer(customerID) {
+            const row = document.querySelector(`#customer-${customerID}`);
+            const name = row.children[0].textContent;
+            const email = row.children[1].textContent;
+            const phone = row.children[2].textContent;
 
-  <h2>Add New Customer</h2>
-  <form id="addCustomerForm">
-    <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required>
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required>
-    <label for="phone">Phone Number:</label>
-    <input type="tel" id="phone" name="phone" pattern="^\d{10}$" placeholder="10 digits">
-    <button type="submit">Add Customer</button>
-  </form>
+            row.innerHTML = `
+                <td><input type="text" id="editName" value="${name}" /></td>
+                <td><input type="email" id="editEmail" value="${email}" /></td>
+                <td><input type="tel" id="editPhone" value="${phone}" /></td>
+                <td>
+                    <button onclick="saveCustomer(${customerID})">Save</button>
+                    <button onclick="cancelEdit(${customerID}, '${name}', '${email}', '${phone}')">Cancel</button>
+                </td>
+            `;
+        }
+
+        // Save customer edits
+        function saveCustomer(customerID) {
+            const row = document.querySelector(`#customer-${customerID}`);
+            const updatedName = row.querySelector('#editName').value;
+            const updatedEmail = row.querySelector('#editEmail').value;
+            const updatedPhone = row.querySelector('#editPhone').value;
+
+            fetch(`/api/customers/${customerID}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    firstName: updatedName,
+                    emailAddress: updatedEmail,
+                    phoneNumber: updatedPhone,
+                }),
+                headers: { 'Content-Type': 'application/json' },
+            }).then(() => location.reload());
+        }
+
+        // Cancel editing
+        function cancelEdit(customerID, name, email, phone) {
+            const row = document.querySelector(`#customer-${customerID}`);
+            row.innerHTML = `
+                <td>${name}</td>
+                <td>${email}</td>
+                <td>${phone}</td>
+                <td>
+                    <button onclick="editCustomer(${customerID})">Update</button>
+                    <button onclick="deleteCustomer(${customerID})">Delete</button>
+                </td>
+            `;
+        }
+    </script>
 </body>
 </html>
