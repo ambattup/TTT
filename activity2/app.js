@@ -3,7 +3,7 @@
 */
 var express = require('express');  // Import Express for the web server
 var app = express();               // Create an Express instance
-PORT = 2821;                       // Define the port number
+PORT = 2829;                       // Define the port number
 
 var db = require('./db-connector'); // Import the MySQL connection pool from db-connector.js
 
@@ -103,6 +103,74 @@ app.get('/api/products/categories', (req, res) => {
         }
     });
 });
+
+/*
+    ROUTES - Customers
+*/
+
+// Route: Get all customers (READ)
+app.get('/api/customers', (req, res) => {
+    const query = `SELECT customerID, firstName, emailAddress, phoneNumber FROM Customers`;
+    db.pool.query(query, (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error fetching customers');
+        } else {
+            res.json(results);
+        }
+    });
+});
+
+// Route: Add a new customer (CREATE)
+app.post('/api/customers', (req, res) => {
+    const { firstName, emailAddress, phoneNumber } = req.body;
+    const query = `
+        INSERT INTO Customers (firstName, emailAddress, phoneNumber)
+        VALUES (?, ?, ?)
+    `;
+    db.pool.query(query, [firstName, emailAddress, phoneNumber], (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error adding customer');
+        } else {
+            res.status(201).send('Customer added successfully');
+        }
+    });
+});
+
+// Route: Update a customer (UPDATE)
+app.put('/api/customers/:id', (req, res) => {
+    const { id } = req.params;
+    const { firstName, emailAddress, phoneNumber } = req.body;
+    const query = `
+        UPDATE Customers 
+        SET firstName = ?, emailAddress = ?, phoneNumber = ?
+        WHERE customerID = ?
+    `;
+    db.pool.query(query, [firstName, emailAddress, phoneNumber, id], (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error updating customer');
+        } else {
+            res.send('Customer updated successfully');
+        }
+    });
+});
+
+// Route: Delete a customer (DELETE)
+app.delete('/api/customers/:id', (req, res) => {
+    const { id } = req.params;
+    const query = `DELETE FROM Customers WHERE customerID = ?`;
+    db.pool.query(query, [id], (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Error deleting customer');
+        } else {
+            res.send('Customer deleted successfully');
+        }
+    });
+});
+
 
 /*
     LISTENER
